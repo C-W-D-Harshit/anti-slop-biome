@@ -1,0 +1,21 @@
+language js
+
+// Disallow Vitest and Jest module mocking; tests must replace dependencies
+// through real interfaces.
+JsCallExpression(callee = $callee) as $call where {
+	or {
+		and {
+			$callee <: JsStaticMemberExpression(object = $object, member = $member),
+			$member <: or { `mock`, `doMock`, `unstable_mockModule` }
+		},
+		and {
+			$callee <: JsComputedMemberExpression(object = $object, member = $member),
+			$member <: r"[\"'](?:mock|doMock|unstable_mockModule)[\"']"
+		}
+	},
+	$object <: or { `vi`, `jest` },
+	register_diagnostic(
+		span = $call,
+		message = "Replace module mocking with dependency injection through a real interface, service layer, or faithful test implementation."
+	)
+}

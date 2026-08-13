@@ -1,0 +1,21 @@
+language js
+
+// Disallow Reflect.get; use typed property access or parse dynamic data at
+// its boundary.
+JsCallExpression(callee = $callee) as $call where {
+	or {
+		and {
+			$callee <: JsStaticMemberExpression(object = $object, member = $member),
+			$member <: `get`
+		},
+		and {
+			$callee <: JsComputedMemberExpression(object = $object, member = $member),
+			$member <: r"[\"']get[\"']"
+		}
+	},
+	$object <: `Reflect`,
+	register_diagnostic(
+		span = $call,
+		message = "Replace `Reflect.get` with typed property access. Parse dynamic external data at its boundary instead of reflecting over it."
+	)
+}

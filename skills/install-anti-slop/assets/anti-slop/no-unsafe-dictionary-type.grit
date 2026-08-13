@@ -1,0 +1,45 @@
+language js
+
+// Disallow object-dictionary contracts whose direct value type is unknown,
+// any, object, {}, or a union/intersection/alias resolving to one of those
+// escape hatches. Alias resolution follows one file-local hop.
+pattern unsafe_value_core() {
+	or {
+		TsUnknownType(),
+		TsAnyType(),
+		TsNonPrimitiveType(),
+		TsObjectType(members = []),
+		TsParenthesizedType(ty = unsafe_value_core()),
+		TsUnionType(types = some unsafe_value_core()),
+		TsIntersectionType(types = some TsAnyType()),
+		TsIntersectionType(types = every unsafe_value_core()),
+		TsReferenceType(
+			name = or { `Readonly`, `Partial`, `Required`, `NonNullable` },
+			type_arguments = TsTypeArguments(ts_type_argument_list = some unsafe_value_core())
+		)
+	}
+}
+
+pattern unsafe_value() {
+	or {
+		unsafe_value_core(),
+		TsReferenceType(name = $value_alias) where {
+			$program <: contains TsTypeAliasDeclaration(binding_identifier = $value_alias, ty = unsafe_value_core())
+		}
+	}
+}
+
+or {
+	TsReferenceType(
+		name = `Record`,
+		type_arguments = TsTypeArguments(ts_type_argument_list = [$_, unsafe_value()])
+	),
+	TsIndexSignatureTypeMember(type_annotation = TsTypeAnnotation(ty = unsafe_value())),
+	TsIndexSignatureClassMember(type_annotation = TsTypeAnnotation(ty = unsafe_value())),
+	TsMappedType(mapped_type = TsTypeAnnotation(ty = unsafe_value()))
+} as $dictionary where {
+	register_diagnostic(
+		span = $dictionary,
+		message = "This dictionary's value type gives callers no concrete value contract. Use an owner/schema-derived value type; parse external payloads before insertion."
+	)
+}
