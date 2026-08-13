@@ -1,0 +1,25 @@
+{
+  "valid": [
+    "const user = input as User;",
+    "const tuple = [1, 2] as const;",
+    "const config = ({ level: 1 } as const) as const;",
+    "const name = (user as User).name as string;",
+    "const wide = <User>input;"
+  ],
+  "invalid": [
+    { "code": "const user = input as object as User;", "errors": 1 },
+    { "code": "const user = (input as object) as User;", "errors": 1 },
+    { "code": "const user = <User>(<object>input);", "errors": 1 },
+    { "code": "const user = <User>(input as object);", "errors": 1 },
+    { "code": "const value = input as unknown as const;", "errors": 1 }
+  ],
+  "divergences": {
+    "changedCount": [
+      {
+        "code": "const user = input as object as Partial<User> as User;",
+        "errors": 2,
+        "reason": "The oxlint original reports a 3-long chain once at the outermost assertion; the GritQL port reports each adjacent assertion pair."
+      }
+    ]
+  }
+}

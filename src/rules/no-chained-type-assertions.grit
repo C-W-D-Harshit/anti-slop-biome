@@ -1,0 +1,22 @@
+language js
+
+// Disallow chained TypeScript `as` and angle-bracket assertions, including
+// parenthesized chains. Chains made only of const assertions are permitted.
+pattern type_assertion($expression, $ty) {
+	or {
+		TsAsExpression(expression = $expression, ty = $ty),
+		TsTypeAssertionExpression(expression = $expression, ty = $ty)
+	}
+}
+
+type_assertion(expression = $inner, ty = $outer_ty) as $chain where {
+	$inner <: or {
+		type_assertion(expression = $_, ty = $inner_ty),
+		JsParenthesizedExpression(expression = type_assertion(expression = $_, ty = $inner_ty))
+	},
+	not and { $outer_ty <: r"const", $inner_ty <: r"const" },
+	register_diagnostic(
+		span = $chain,
+		message = "This assertion chain discards type evidence. Keep the original precise type, or parse untrusted input at its boundary before narrowing it."
+	)
+}
