@@ -1,0 +1,33 @@
+{
+  "valid": [
+    "const store = new InMemoryUserStore();",
+    "vi.spyOn(store, 'save');",
+    "import { vi as localVi } from './helpers'; localVi.mock('./module');"
+  ],
+  "invalid": [
+    { "code": "vi.mock('./user-store');", "errors": 1 },
+    { "code": "jest.mock('./user-store');", "errors": 1 },
+    { "code": "vi['doMock']('./user-store');", "errors": 1 },
+    { "code": "jest.unstable_mockModule('./user-store');", "errors": 1 },
+    { "code": "import { vi } from 'vitest'; vi.mock('./user-store');", "errors": 1 },
+    { "code": "import { jest } from '@jest/globals'; jest.mock('./user-store');", "errors": 1 }
+  ],
+  "divergences": {
+    "missedInvalid": [
+      {
+        "code": "import { vi as testApi } from 'vitest'; testApi.mock('./user-store');",
+        "reason": "GritQL has no import tracking; a renamed vitest/jest import is not recognized."
+      }
+    ],
+    "extraInvalid": [
+      {
+        "code": "const vi = { mock() {} }; vi.mock();",
+        "reason": "GritQL has no scope resolution; a local object named vi/jest is flagged."
+      },
+      {
+        "code": "function test(jest: { mock(): void }) { jest.mock(); }",
+        "reason": "GritQL has no scope resolution; a parameter named jest is flagged."
+      }
+    ]
+  }
+}
