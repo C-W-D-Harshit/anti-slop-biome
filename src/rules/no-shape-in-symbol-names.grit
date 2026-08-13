@@ -1,0 +1,22 @@
+language js
+
+// Disallow the case-insensitive substring "shape" in JavaScript, TypeScript,
+// private, and JSX symbol names.
+or {
+	JsIdentifierBinding(),
+	TsIdentifierBinding(),
+	JsReferenceIdentifier(),
+	JsxReferenceIdentifier(),
+	JsIdentifierAssignment(),
+	JsName(),
+	JsPrivateName(),
+	JsPrivateClassMemberName(),
+	TsTypeParameterName(),
+	JsLiteralMemberName()
+} as $name where {
+	$name <: r"(?i)[^'\"]*shape[^'\"]*",
+	register_diagnostic(
+		span = $name,
+		message = "Rename this symbol for its domain role; \"shape\" describes structure rather than ownership."
+	)
+}

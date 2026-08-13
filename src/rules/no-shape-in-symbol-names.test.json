@@ -1,0 +1,19 @@
+{
+  "valid": [
+    "interface User { id: string }",
+    "const userRecord = { id: '1' };",
+    "const geometry = { sides: 4 };",
+    "const label = 'shape';",
+    "const config = { 'shape': 1 };"
+  ],
+  "invalid": [
+    { "code": "interface UserShape { id: string }", "errors": 1 },
+    { "code": "const shapeData = 1;", "errors": 1 },
+    { "code": "const dataShape = 1;", "errors": 1 },
+    { "code": "type ResponseShape = { id: string };", "errors": 1 },
+    { "code": "class Circle { #shapeKind = 'round'; }", "errors": 1 },
+    { "code": "function getShape() {}", "errors": 1 },
+    { "code": "const value = { shape: 1 };", "errors": 1 },
+    { "code": "const result = user.shape;", "errors": 1 }
+  ]
+}
