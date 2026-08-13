@@ -1,0 +1,21 @@
+{
+  "name": "biome-plugin-anti-slop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Opinionated Biome GritQL rules that reject low-evidence TypeScript and JavaScript patterns.",
+  "type": "module",
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "check": "pnpm test && pnpm check:skill-assets",
+    "test": "node scripts/test-rules.mjs",
+    "sync:skill-assets": "node scripts/sync-skill-assets.mjs",
+    "check:skill-assets": "node scripts/sync-skill-assets.mjs --check"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.8"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "license": "MIT"
+}
