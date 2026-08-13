@@ -1,0 +1,195 @@
+language js
+
+// Disallow syntactically established values from flowing into explicitly
+// broad or anonymous target types that discard useful evidence. Alias
+// resolution follows one file-local hop; empty object literals may seed
+// open-dictionary accumulators.
+pattern known_evidence() {
+	or {
+		JsObjectExpression(),
+		JsArrayExpression(),
+		JsArrowFunctionExpression(),
+		JsFunctionExpression(),
+		JsClassExpression(),
+		JsNewExpression(),
+		JsStringLiteralExpression(),
+		JsNumberLiteralExpression(),
+		JsBigintLiteralExpression(),
+		JsBooleanLiteralExpression(),
+		JsNullLiteralExpression(),
+		JsRegexLiteralExpression(),
+		JsTemplateExpression(),
+		JsUnaryExpression(),
+		JsParenthesizedExpression(expression = known_evidence()),
+		TsAsExpression(expression = known_evidence()),
+		TsTypeAssertionExpression(expression = known_evidence()),
+		TsSatisfiesExpression(expression = known_evidence()),
+		TsNonNullAssertionExpression(expression = known_evidence())
+	}
+}
+
+pattern empty_object_value() {
+	or {
+		JsObjectExpression(members = []),
+		JsParenthesizedExpression(expression = empty_object_value()),
+		TsAsExpression(expression = empty_object_value()),
+		TsTypeAssertionExpression(expression = empty_object_value()),
+		TsSatisfiesExpression(expression = empty_object_value()),
+		TsNonNullAssertionExpression(expression = empty_object_value())
+	}
+}
+
+pattern transparent_wrapper($wrapped) {
+	TsReferenceType(
+		name = or { `Readonly`, `Partial`, `Required`, `NonNullable` },
+		type_arguments = TsTypeArguments(ts_type_argument_list = some $wrapped)
+	)
+}
+
+pattern broad_mapped_key() {
+	or {
+		TsStringType(),
+		TsNumberType(),
+		TsSymbolType(),
+		TsUnionType(types = every broad_mapped_key()),
+		TsReferenceType(name = `PropertyKey`)
+	}
+}
+
+pattern dictionary_target_core() {
+	or {
+		TsObjectType(members = some TsIndexSignatureTypeMember()),
+		TsMappedType(),
+		TsReferenceType(name = `Record`),
+		TsParenthesizedType(ty = dictionary_target_core()),
+		transparent_wrapper(wrapped = dictionary_target_core())
+	}
+}
+
+pattern alias_dictionary_core() {
+	or {
+		TsObjectType(members = some TsIndexSignatureTypeMember()),
+		TsMappedType(keys_type = broad_mapped_key()),
+		TsReferenceType(name = `Record`),
+		TsParenthesizedType(ty = alias_dictionary_core()),
+		transparent_wrapper(wrapped = alias_dictionary_core())
+	}
+}
+
+pattern dictionary_target() {
+	or {
+		dictionary_target_core(),
+		TsReferenceType(name = $dictionary_alias) where {
+			$program <: contains TsTypeAliasDeclaration(binding_identifier = $dictionary_alias, ty = alias_dictionary_core())
+		}
+	}
+}
+
+pattern alias_nondict_core() {
+	or {
+		TsUnknownType(),
+		TsNonPrimitiveType(),
+		TsParenthesizedType(ty = alias_nondict_core()),
+		transparent_wrapper(wrapped = alias_nondict_core())
+	}
+}
+
+pattern nondict_target() {
+	or {
+		TsUnknownType(),
+		TsNonPrimitiveType(),
+		and {
+			TsObjectType(members = some $_),
+			not TsObjectType(members = some TsIndexSignatureTypeMember())
+		},
+		TsParenthesizedType(ty = nondict_target()),
+		transparent_wrapper(wrapped = nondict_target()),
+		TsReferenceType(name = $broad_alias) where {
+			$program <: contains TsTypeAliasDeclaration(binding_identifier = $broad_alias, ty = alias_nondict_core())
+		}
+	}
+}
+
+predicate widened_flow($target, $value) {
+	$value <: known_evidence(),
+	or {
+		and { $target <: dictionary_target(), $value <: not empty_object_value() },
+		$target <: nondict_target()
+	}
+}
+
+or {
+	JsVariableDeclarator(
+		variable_annotation = TsTypeAnnotation(ty = $target),
+		initializer = JsInitializerClause(expression = $value)
+	) where {
+		widened_flow(target = $target, value = $value),
+		register_diagnostic(
+			span = $value,
+			message = "The explicit broad type on this binding discards known type evidence. Keep inference, validate with `satisfies`, or use a named owner contract."
+		)
+	},
+	JsPropertyClassMember(
+		property_annotation = TsTypeAnnotation(ty = $target),
+		value = JsInitializerClause(expression = $value)
+	) where {
+		widened_flow(target = $target, value = $value),
+		register_diagnostic(
+			span = $value,
+			message = "The explicit broad type on this property discards known type evidence. Keep inference, validate with `satisfies`, or use a named owner contract."
+		)
+	},
+	or {
+		JsFunctionDeclaration(return_type_annotation = TsReturnTypeAnnotation(ty = $target), body = $body),
+		JsFunctionExpression(return_type_annotation = TsReturnTypeAnnotation(ty = $target), body = $body),
+		JsArrowFunctionExpression(return_type_annotation = TsReturnTypeAnnotation(ty = $target), body = $body),
+		JsMethodClassMember(return_type_annotation = TsReturnTypeAnnotation(ty = $target), body = $body),
+		JsMethodObjectMember(return_type_annotation = TsReturnTypeAnnotation(ty = $target), body = $body)
+	} where {
+		or {
+			and {
+				$body <: known_evidence(),
+				widened_flow(target = $target, value = $body),
+				register_diagnostic(
+					span = $body,
+					message = "The explicit broad return type discards known type evidence. Keep inference, validate with `satisfies`, or use a named owner contract."
+				)
+			},
+			and {
+				$target <: dictionary_target(),
+				$body <: contains bubble JsReturnStatement(argument = $value) where {
+					$value <: known_evidence(),
+					$value <: not empty_object_value(),
+					register_diagnostic(
+						span = $value,
+						message = "The explicit broad return type discards known type evidence. Keep inference, validate with `satisfies`, or use a named owner contract."
+					)
+				}
+			},
+			and {
+				$target <: nondict_target(),
+				$body <: contains bubble JsReturnStatement(argument = $value) where {
+					$value <: known_evidence(),
+					register_diagnostic(
+						span = $value,
+						message = "The explicit broad return type discards known type evidence. Keep inference, validate with `satisfies`, or use a named owner contract."
+					)
+				}
+			}
+		}
+	},
+	or {
+		TsAsExpression(expression = $value, ty = $target),
+		TsTypeAssertionExpression(expression = $value, ty = $target)
+	} as $assertion where {
+		$assertion <: not within or {
+			TsAsExpression(expression = or { $assertion, JsParenthesizedExpression(expression = $assertion) }),
+			TsTypeAssertionExpression(expression = or { $assertion, JsParenthesizedExpression(expression = $assertion) })
+		},
+		widened_flow(target = $target, value = $value),
+		register_diagnostic(
+			span = $value,
+			message = "This assertion to a broad type discards known type evidence. Keep inference, validate with `satisfies`, or use a named owner contract."
+		)
+	}
+}
