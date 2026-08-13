@@ -1,0 +1,34 @@
+{
+  "valid": [
+    "interface Owner { readonly id: string } function f(value: Owner) {}",
+    "function f<Value>(value: Value) {}",
+    "function f<Value extends object>(value: Value) {}",
+    "function f<Value extends Owner, Owner extends { readonly id: string }>(value: Value) {}",
+    "type Owner = { readonly id: string }; function f<Value extends Owner>(value: Value) {}",
+    "function f(value: { id: string }) {}"
+  ],
+  "invalid": [
+    { "code": "function f(value: object) {}", "errors": 1 },
+    { "code": "type Alias = object; function f(value: Alias) {}", "errors": 1 },
+    { "code": "type Alias = (object); function f(value: Alias) {}", "errors": 1 },
+    { "code": "function f(value: object | string) {}", "errors": 1 },
+    { "code": "const f = (value: object) => value;", "errors": 1 },
+    { "code": "interface Api { save(value: object): void }", "errors": 1 }
+  ],
+  "divergences": {
+    "extraInvalid": [
+      {
+        "code": "type Alias = object; function consume<Alias>(value: Alias) {}",
+        "reason": "GritQL has no scope resolution; a generic type parameter shadowing a file-local alias is not recognized."
+      },
+      {
+        "code": "type Alias = object; type Consumer<Alias> = (value: Alias) => void;",
+        "reason": "GritQL has no scope resolution; a generic type parameter shadowing a file-local alias is not recognized."
+      },
+      {
+        "code": "type Alias = object; interface Consumer<Alias> { consume(value: Alias): void }",
+        "reason": "GritQL has no scope resolution; a generic type parameter shadowing a file-local alias is not recognized."
+      }
+    ]
+  }
+}
