@@ -1,0 +1,20 @@
+language js
+
+// Disallow object spreads that conditionally spread an empty object to omit
+// fields.
+JsObjectExpression(members = some bubble JsSpread(argument = $argument) as $spread where {
+	$argument <: or {
+		JsConditionalExpression(consequent = $consequent, alternate = $alternate),
+		JsParenthesizedExpression(
+			expression = JsConditionalExpression(consequent = $consequent, alternate = $alternate)
+		)
+	},
+	or {
+		$consequent <: JsObjectExpression(members = []),
+		$alternate <: JsObjectExpression(members = [])
+	},
+	register_diagnostic(
+		span = $spread,
+		message = "This conditional spread hides property omission behind an empty object. Build the object in separate statements and add the property only when present."
+	)
+})

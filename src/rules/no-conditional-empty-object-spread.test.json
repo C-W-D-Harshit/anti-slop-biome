@@ -1,0 +1,16 @@
+{
+  "valid": [
+    "const result = { value };",
+    "const result = { ...values };",
+    "const result = condition ? { value } : {};",
+    "const list = [...(condition ? {} : items)];"
+  ],
+  "invalid": [
+    { "code": "const result = { ...(value !== undefined ? { value } : {}) };", "errors": 1 },
+    { "code": "const result = { ...(condition ? {} : { value }) };", "errors": 1 },
+    {
+      "code": "const result = { ...(a ? { a } : {}), ...(b ? {} : { b }) };",
+      "errors": 2
+    }
+  ]
+}
