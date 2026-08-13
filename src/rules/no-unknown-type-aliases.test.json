@@ -1,0 +1,23 @@
+{
+  "valid": [
+    "type Value = { data: unknown };",
+    "type Union = unknown | string;",
+    "type Ref = External;",
+    "type WithArgs = Container<unknown>;"
+  ],
+  "invalid": [
+    { "code": "type ExternalValue = unknown;", "errors": 1 },
+    { "code": "type Wrapped = (unknown);", "errors": 1 },
+    { "code": "type A = unknown; type B = A;", "errors": 2 },
+    { "code": "export type Escape = unknown;", "errors": 1 }
+  ],
+  "divergences": {
+    "changedCount": [
+      {
+        "code": "type A = unknown; type B = A; type C = B;",
+        "errors": 2,
+        "reason": "The oxlint original resolves alias chains recursively and reports all three; the GritQL port follows one alias hop and misses C."
+      }
+    ]
+  }
+}

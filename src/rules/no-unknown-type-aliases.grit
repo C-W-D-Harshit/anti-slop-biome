@@ -1,0 +1,24 @@
+language js
+
+// Disallow type aliases whose resolved type is unknown; unknown must remain
+// visible at an allowed boundary. Resolution follows one file-local alias hop.
+pattern bare_unknown() {
+	or {
+		TsUnknownType(),
+		TsParenthesizedType(ty = bare_unknown())
+	}
+}
+
+TsTypeAliasDeclaration(binding_identifier = $alias, ty = $ty) where {
+	or {
+		$ty <: bare_unknown(),
+		and {
+			$ty <: TsReferenceType(name = $target),
+			$program <: contains TsTypeAliasDeclaration(binding_identifier = $target, ty = bare_unknown())
+		}
+	},
+	register_diagnostic(
+		span = $alias,
+		message = "This type alias hides `unknown`. Keep `unknown` explicit at the parsing boundary or on an allowed `cause` field; otherwise use the parsed owner type."
+	)
+}
