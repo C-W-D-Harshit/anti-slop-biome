@@ -1,0 +1,93 @@
+{
+  "valid": [
+    "type Commands = Record<string, Command>;",
+    "type Metadata = Record<PropertyKey, JsonValue>;",
+    "type PermissionLevels = Record<Permission, number>;",
+    "type Indexed = { [key: string]: Command };",
+    "type CompatibleIndexes = { [index: number]: Command; [key: string]: Command | OtherCommand };",
+    "type Exhaustive = { [K in Permission]: number };",
+    "type Allowed = Record<string, { payload: unknown }>;",
+    "type AlsoAllowed = Record<string, Result<Data, unknown>>;",
+    "type Index<T> = Record<string, T>; type EntityIndex<T extends Entity> = Record<string, T>;",
+    "type Safe = Index<Command>; type Index<T> = Record<string, T>;",
+    "type A = Map<string, unknown>; type B = ReadonlyMap<string, unknown>; type C = WeakMap<object, unknown>;",
+    "interface Owner { readonly id: string } type A = Record<string, unknown & Owner>;",
+    "interface Owner { readonly id: string } type A = Record<string, object & Owner>;"
+  ],
+  "invalid": [
+    { "code": "type A = Record<string, unknown>;", "errors": 1 },
+    { "code": "type A = { [key: string]: any };", "errors": 1 },
+    { "code": "type A = { [index: number]: Command; [key: string]: unknown | Command };", "errors": 1 },
+    { "code": "type A = { [K in PropertyKey]: object };", "errors": 1 },
+    { "code": "type A = { [K in PropertyKey]: NonNullable<unknown> };", "errors": 1 },
+    { "code": "type A = { [key: string]: NonNullable<unknown> };", "errors": 1 },
+    { "code": "type A = Record<string, {}>;", "errors": 1 },
+    { "code": "type A = Record<string, string | unknown>;", "errors": 1 },
+    { "code": "type A = Record<string, unknown & {}>;", "errors": 1 },
+    { "code": "interface Owner { readonly id: string } type A = Record<string, any & Owner>;", "errors": 1 },
+    { "code": "type Escape = unknown; type A = Record<string, Escape>;", "errors": 1 },
+    { "code": "type A = Readonly<Partial<Required<(Record<string, unknown>)>>>;", "errors": 1 },
+    { "code": "type A = { readonly [key: string]: unknown };", "errors": 1 },
+    { "code": "type A = { readonly [K in string]: unknown };", "errors": 1 },
+    { "code": "interface A { [key: string]: unknown }", "errors": 1 },
+    { "code": "type A = Readonly<Record<string, unknown>>;", "errors": 1 },
+    { "code": "type A = Record<string, Readonly<unknown>>;", "errors": 1 },
+    { "code": "type A = Record<string, Partial<unknown>>;", "errors": 1 },
+    { "code": "type A = Record<string, Required<unknown>>;", "errors": 1 },
+    { "code": "type Escape = Readonly<unknown>; type A = Record<string, Escape>;", "errors": 1 },
+    { "code": "type A = Record<string, NonNullable<unknown>>;", "errors": 1 },
+    { "code": "type Escape = NonNullable<unknown>; type A = Record<string, Escape>;", "errors": 1 },
+    { "code": "type Unsafe = Record<string, unknown>; const x: Unsafe = {}; const y: Unsafe = {};", "errors": 1 },
+    { "code": "class Store { [key: string]: unknown }", "errors": 1 }
+  ],
+  "divergences": {
+    "missedInvalid": [
+      {
+        "code": "interface Escape {} type A = Record<string, Escape>;",
+        "reason": "GritQL cannot classify effectively-empty interfaces as unsafe values."
+      },
+      {
+        "code": "interface Escape { readonly __brand?: never } type A = Record<string, Escape>;",
+        "reason": "GritQL cannot classify effectively-empty (optional-never member) shapes as unsafe values."
+      },
+      {
+        "code": "type A = Record<string, { readonly __brand?: never }>;",
+        "reason": "GritQL cannot classify effectively-empty (optional-never member) shapes as unsafe values."
+      },
+      {
+        "code": "type Index<T> = Record<string, T>; type A = Index<unknown>;",
+        "reason": "GritQL cannot substitute generic type arguments through alias applications."
+      },
+      {
+        "code": "type Index<T = unknown> = Record<string, T>; type A = Index;",
+        "reason": "GritQL cannot substitute generic type arguments through alias applications."
+      },
+      {
+        "code": "type Wrapped<T> = Readonly<T>; type A = Record<string, Wrapped<unknown>>;",
+        "reason": "GritQL cannot substitute generic type arguments through alias applications."
+      }
+    ],
+    "extraInvalid": [
+      {
+        "code": "import { Record } from './local'; type A = Record<string, unknown>;",
+        "reason": "GritQL has no import tracking; a shadowed Record built-in is still treated as the TypeScript utility type."
+      },
+      {
+        "code": "type Record<K, V> = { key: K; value: V }; type A = Record<string, unknown>;",
+        "reason": "GritQL has no scope resolution; a file-local Record alias is still treated as the TypeScript utility type."
+      }
+    ],
+    "changedCount": [
+      {
+        "code": "type Unsafe = Record<string, unknown>; type AlsoUnsafe = Unsafe; const x: Unsafe = {};",
+        "errors": 1,
+        "reason": "The oxlint original also reports the alias-of-alias declaration; the GritQL port reports the underlying Record once."
+      },
+      {
+        "code": "type Source = Record<string, unknown>; type A = Pick<Source, string>;",
+        "errors": 1,
+        "reason": "The oxlint original propagates dictionary values through Pick/Omit; the GritQL port reports the source Record only."
+      }
+    ]
+  }
+}
