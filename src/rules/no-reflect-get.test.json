@@ -1,0 +1,23 @@
+{
+  "valid": [
+    "const value = owner.property;",
+    "const value = owner[key];",
+    "Reflect.set(owner, key, value);"
+  ],
+  "invalid": [
+    { "code": "const value = Reflect.get(owner, key);", "errors": 1 },
+    { "code": "const value = Reflect['get'](owner, key);", "errors": 1 }
+  ],
+  "divergences": {
+    "extraInvalid": [
+      {
+        "code": "const Reflect = { get() { return 1; } }; Reflect.get();",
+        "reason": "GritQL has no scope resolution; a local binding shadowing Reflect is flagged."
+      },
+      {
+        "code": "function read(Reflect: { get(): number }) { return Reflect.get(); }",
+        "reason": "GritQL has no scope resolution; a parameter shadowing Reflect is flagged."
+      }
+    ]
+  }
+}
