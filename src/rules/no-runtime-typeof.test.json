@@ -1,0 +1,13 @@
+{
+  "valid": [
+    "type Config = typeof defaultConfig;",
+    "const parsed = UserSchema.parse(input);",
+    "if (user instanceof AdminUser) { grant(user); }"
+  ],
+  "invalid": [
+    { "code": "if (typeof input === 'string') { useName(input); }", "errors": 1 },
+    { "code": "const kind = typeof value;", "errors": 1 },
+    { "code": "switch (typeof value) { default: break; }", "errors": 1 },
+    { "code": "if (typeof a === 'string' && typeof b === 'number') {}", "errors": 2 }
+  ]
+}

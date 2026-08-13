@@ -1,0 +1,11 @@
+language js
+
+// Disallow runtime typeof checks; external values must be decoded into
+// meaningful types at their I/O boundary.
+`typeof $value` as $check where {
+	$check <: JsUnaryExpression(),
+	register_diagnostic(
+		span = $check,
+		message = "A `typeof` check narrows a representation without establishing its contract. Parse input at its I/O boundary, then branch on the domain value."
+	)
+}
