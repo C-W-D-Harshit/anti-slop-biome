@@ -1,0 +1,40 @@
+language js
+
+// Disallow functions whose explicit return contract is unknown or
+// Promise<unknown>, including one file-local alias hop.
+pattern unknown_core() {
+	or {
+		TsUnknownType(),
+		TsParenthesizedType(ty = unknown_core()),
+		TsUnionType(types = some unknown_core())
+	}
+}
+
+pattern alias_to_unknown() {
+	TsReferenceType(name = $alias_name) where {
+		$program <: contains TsTypeAliasDeclaration(binding_identifier = $alias_name, ty = unknown_core())
+	}
+}
+
+pattern unknown_return() {
+	or {
+		unknown_core(),
+		alias_to_unknown(),
+		TsReferenceType(
+			name = or { `Promise`, `PromiseLike` },
+			type_arguments = TsTypeArguments(
+				ts_type_argument_list = some or { unknown_core(), alias_to_unknown() }
+			)
+		)
+	}
+}
+
+or {
+	TsReturnTypeAnnotation(ty = unknown_return() as $ty),
+	TsFunctionType(return_type = unknown_return() as $ty)
+} where {
+	register_diagnostic(
+		span = $ty,
+		message = "This function exposes `unknown` to its caller. Parse the value at its boundary and return a named domain type."
+	)
+}

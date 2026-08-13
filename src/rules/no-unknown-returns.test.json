@@ -1,0 +1,28 @@
+{
+  "valid": [
+    "function parse(): User { return user; }",
+    "function infer() { return input; }",
+    "function generic<Value>(): Value { return value; }",
+    "function cause(): { cause: unknown } { return { cause: input }; }",
+    "type Result = { value: unknown }; function load(): Result { return result; }",
+    "function load(): Promise<User> { return promise; }"
+  ],
+  "invalid": [
+    { "code": "function load(): unknown { return input; }", "errors": 1 },
+    { "code": "const load = (): unknown => input;", "errors": 1 },
+    { "code": "type Loader = () => unknown;", "errors": 1 },
+    { "code": "interface Loader { load(): unknown }", "errors": 1 },
+    { "code": "declare function load(): unknown;", "errors": 1 },
+    { "code": "function load(): string | unknown { return input; }", "errors": 1 },
+    { "code": "function load(): Promise<unknown> { return promise; }", "errors": 1 },
+    { "code": "type UnknownValue = unknown; function load(): UnknownValue { return input; }", "errors": 1 }
+  ],
+  "divergences": {
+    "extraInvalid": [
+      {
+        "code": "type Value = unknown; function generic<Value>(): Value { return value; }",
+        "reason": "GritQL has no scope resolution; a generic type parameter shadowing a file-local alias is not recognized."
+      }
+    ]
+  }
+}
