@@ -11,7 +11,7 @@ Requires Biome 2.0 or later (GritQL plugin support).
 ## Install with an agent skill
 
 ```bash
-npx skills add <your-github-user>/anti-slop-biome --skill install-anti-slop
+npx skills add C-W-D-Harshit/anti-slop-biome --skill install-anti-slop
 ```
 
 Then ask your coding agent to install or configure anti-slop in the current repository. The skill copies the rules, checks the Biome version, merges the plugin entries into the existing `biome.json`, and validates the result.
