@@ -1,0 +1,21 @@
+language js
+
+// Disallow Reflect.apply; call typed functions directly or model dynamic
+// dispatch behind an interface.
+JsCallExpression(callee = $callee) as $call where {
+	or {
+		and {
+			$callee <: JsStaticMemberExpression(object = $object, member = $member),
+			$member <: `apply`
+		},
+		and {
+			$callee <: JsComputedMemberExpression(object = $object, member = $member),
+			$member <: r"[\"']apply[\"']"
+		}
+	},
+	$object <: `Reflect`,
+	register_diagnostic(
+		span = $call,
+		message = "Replace `Reflect.apply` with a typed function call. Model dynamic dispatch behind a named interface."
+	)
+}
