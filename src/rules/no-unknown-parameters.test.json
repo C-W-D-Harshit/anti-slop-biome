@@ -1,0 +1,20 @@
+{
+  "valid": [
+    "function handle(input: string) {}",
+    "function enrich(cause: unknown) {}",
+    "function handle(values: unknown[]) {}",
+    "function handle(input: string | unknown) {}",
+    "type Enricher = (cause: unknown) => Error;",
+    "function generic<Value>(value: Value) {}"
+  ],
+  "invalid": [
+    { "code": "function handle(input: unknown) {}", "errors": 1 },
+    { "code": "const parse = (raw: unknown) => raw;", "errors": 1 },
+    { "code": "interface Api { handle(input: unknown): void }", "errors": 1 },
+    { "code": "type Handler = (input: unknown) => void;", "errors": 1 },
+    { "code": "declare function load(input: unknown): void;", "errors": 1 },
+    { "code": "class Service { constructor(private input: unknown) {} }", "errors": 1 },
+    { "code": "class Service { handle(input: unknown) {} }", "errors": 1 },
+    { "code": "function pair(name: string, value: unknown) {}", "errors": 1 }
+  ]
+}

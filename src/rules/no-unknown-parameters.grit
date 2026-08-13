@@ -1,0 +1,14 @@
+language js
+
+// Disallow explicitly unknown function parameters except `cause`; decode
+// unknown input at its I/O boundary instead.
+JsFormalParameter(
+	binding = $binding,
+	type_annotation = TsTypeAnnotation(ty = TsUnknownType() as $ty)
+) where {
+	$binding <: not `cause`,
+	register_diagnostic(
+		span = $ty,
+		message = "This parameter leaves input unparsed. Accept a named domain type; run the expected schema or parser at the I/O boundary before calling this function."
+	)
+}
